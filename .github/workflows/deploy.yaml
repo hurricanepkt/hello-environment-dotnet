@@ -2,10 +2,10 @@ on:
   push:
       
 jobs:
-  publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     steps:
     - name: Checkout code
@@ -22,11 +22,11 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Publish container to GHCR
+    - name: Publish app
       run: |
         dotnet publish \
-        --os linux \
-        --arch x64 \
-        -p ContainerImageTags='"latest"' \
-        -p ContainerRegistry=ghcr.io \
-        -t:PublishContainer
+          /t:PublishContainer \
+          -p DebugType=none \
+          -p ContainerRegistry=ghcr.io \
+          -p ContainerImageTags='"latest;"' \
+          -bl
