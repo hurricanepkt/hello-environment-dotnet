@@ -53,6 +53,6 @@ jobs:
 
       - name: Publish and push the container image
         run: |
-          dotnet publish --os linux --arch x64 -c Release /t:PublishContainer -p ContainerRegistry=ghcr.io
+          dotnet publish --os linux --arch x64 -c Release /t:PublishContainer -p ContainerRegistry=ghcr.io  --project ./hello-environment/hello-environment.csproj
         env:
           ContainerImageTags: "latest;${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.preReleaseTag }}"
