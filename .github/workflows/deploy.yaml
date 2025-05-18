@@ -22,22 +22,19 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3
-        with:
-          preferLatestVersion: 'true'
-          
-      - name: Determine Version          
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v3
-
-      - name: Login to ghcr.io
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Publish and push the container image
+
+      - name: Publish container to GHCR
         run: |
-          dotnet publish --os linux --arch x64 -c Release /t:PublishContainer -p ContainerRegistry=ghcr.io 
+          dotnet publish \
+          --os linux \
+          --arch x64 \
+          -p ContainerImageTags='"latest;"' \
+          -p ContainerRegistry=ghcr.io \
+          -p ContainerRepository=${{ github.repository }} \
+          -t:PublishContainer
