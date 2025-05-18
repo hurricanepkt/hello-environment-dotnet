@@ -1,33 +1,58 @@
+name: Publish to GitHub Container Registry
+
 on:
+  workflow_dispatch:
   push:
-      
+    branches:
+      - main
+
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: read
       packages: write
+      contents: read
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: 
+          fetch-depth: 0
 
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 9.x      
-    - name: Log in to GHCR
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          preferLatestVersion: 'true'
+          
+      - name: Determine Version          
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
 
-    - name: Publish app
-      run: |
-        dotnet publish \
-          /t:PublishContainer \
-          -p DebugType=none \
-          -p ContainerRegistry=ghcr.io \
-          -p ContainerImageTags='"latest;"' \
-          -bl
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker arc meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # generate Docker tags based on the following events/attributes
+          sep-tags: ';'
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Publish and push the container image
+        run: |
+          dotnet publish --os linux --arch x64 -c Release /t:PublishContainer -p ContainerRegistry=ghcr.io
+        env:
+          ContainerImageTags: "latest;${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.preReleaseTag }}"
